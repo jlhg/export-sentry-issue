@@ -1,5 +1,7 @@
 # Sentry Issue Export Tool
 
+[繁體中文版 (Traditional Chinese)](README.zh-TW.md)
+
 Export Sentry issues to plain text files for offline analysis and debugging.
 
 ## Features
