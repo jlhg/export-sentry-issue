@@ -6,6 +6,13 @@ from datetime import datetime
 import re
 import os
 import json
+import sys
+import getpass
+from pathlib import Path
+import stat
+
+CONFIG_DIR = Path.home() / ".config" / "export-sentry-issue"
+CONFIG_FILE = CONFIG_DIR / "config.json"
 
 def parse_base_url(base_url):
     """Parse API base URL from the provided base_url"""
@@ -14,6 +21,49 @@ def parse_base_url(base_url):
     if match:
         return match.group(1)
     raise ValueError("Invalid base_url format")
+
+def ensure_config_dir():
+    """Ensure config directory exists with proper permissions"""
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    # Set directory permissions to 700 (owner read/write/execute only)
+    os.chmod(CONFIG_DIR, stat.S_IRWXU)
+
+def save_config(base_url, token):
+    """Save configuration to file with secure permissions"""
+    ensure_config_dir()
+
+    config = {
+        "base_url": base_url,
+        "token": token
+    }
+
+    # Write config file
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f, indent=2)
+
+    # Set file permissions to 600 (owner read/write only)
+    os.chmod(CONFIG_FILE, stat.S_IRUSR | stat.S_IWUSR)
+
+def load_config():
+    """Load configuration from file"""
+    if not CONFIG_FILE.exists():
+        return None
+
+    # Check file permissions
+    file_stat = os.stat(CONFIG_FILE)
+    if file_stat.st_mode & (stat.S_IRGRP | stat.S_IROTH):
+        print("⚠️  Warning: Config file has insecure permissions!")
+        print(f"   Please run: chmod 600 {CONFIG_FILE}")
+
+    with open(CONFIG_FILE, 'r') as f:
+        return json.load(f)
+
+def delete_config():
+    """Delete configuration file"""
+    if CONFIG_FILE.exists():
+        CONFIG_FILE.unlink()
+        return True
+    return False
 
 def get_issue_details(base_api_url, token, issue_id):
     """Get complete details of a single issue"""
@@ -263,6 +313,172 @@ def format_issue_to_text(issue, latest_event, debug_mode=False):
 
     return "\n".join(output)
 
+def get_api_tokens(base_api_url, token):
+    """Get list of API tokens"""
+    url = f"{base_api_url.rsplit('/api/', 1)[0]}/api/0/api-tokens/"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json()
+
+def revoke_token(base_api_url, token):
+    """Revoke the current API token"""
+    try:
+        # Get token info to find the token ID
+        tokens = get_api_tokens(base_api_url, token)
+
+        # Find current token by comparing the token value (Sentry API limitations)
+        # Since we can't directly identify which token ID corresponds to our token,
+        # we'll just inform the user to manually revoke it from the UI
+        print("Note: Automatic token revocation requires the token ID.")
+        print("Please revoke the token manually from Sentry:")
+        print("  Settings → Account → API → Auth Tokens")
+        return False
+
+    except Exception as e:
+        print(f"Error: Unable to revoke token automatically: {e}")
+        print("Please revoke the token manually from Sentry:")
+        print("  Settings → Account → API → Auth Tokens")
+        return False
+
+def cmd_init(args):
+    """Initialize configuration by prompting for credentials"""
+    print("=== Sentry Issue Export Tool - Initialization ===\n")
+
+    # Check if config already exists
+    if CONFIG_FILE.exists():
+        print(f"⚠️  Configuration already exists at: {CONFIG_FILE}")
+        response = input("Do you want to overwrite it? (yes/no): ").strip().lower()
+        if response not in ['yes', 'y']:
+            print("Initialization cancelled.")
+            return
+
+    # Get base URL
+    print("\nEnter your Sentry API base URL")
+    print("Format: https://sentry.io/api/0/projects/{org}/{project}/issues/")
+    print("Or: https://your-domain.com/api/0/projects/{org}/{project}/issues/")
+    base_url = input("\nBase URL: ").strip()
+
+    if not base_url:
+        print("Error: Base URL is required")
+        sys.exit(1)
+
+    try:
+        parsed_url = parse_base_url(base_url)
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+    # Get token securely
+    print("\nEnter your Sentry Auth Token")
+    print("(Get it from: Settings → Account → API → Auth Tokens)")
+    token = getpass.getpass("Token (hidden): ").strip()
+
+    if not token:
+        print("Error: Token is required")
+        sys.exit(1)
+
+    # Verify token by making a test API call
+    print("\nVerifying token...")
+    try:
+        # Test with a simple API call
+        test_url = f"{parsed_url}/projects/"
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(test_url, headers=headers)
+        response.raise_for_status()
+        print("✓ Token verified successfully")
+    except requests.exceptions.RequestException as e:
+        print(f"✗ Token verification failed: {e}")
+        response = input("\nSave anyway? (yes/no): ").strip().lower()
+        if response not in ['yes', 'y']:
+            print("Initialization cancelled.")
+            sys.exit(1)
+
+    # Save configuration
+    save_config(base_url, token)
+    print(f"\n✓ Configuration saved to: {CONFIG_FILE}")
+    print(f"  File permissions: 600 (owner read/write only)")
+    print("\nYou can now use the export command without specifying --token:")
+    print(f"  {sys.argv[0]} export --ids \"12345,67890\"")
+
+def cmd_revoke(args):
+    """Revoke token and delete configuration"""
+    print("=== Revoke Sentry Token ===\n")
+
+    config = load_config()
+    if not config:
+        print(f"Error: No configuration found at {CONFIG_FILE}")
+        print("Nothing to revoke.")
+        sys.exit(1)
+
+    print(f"Configuration file: {CONFIG_FILE}")
+    print(f"Base URL: {config.get('base_url', 'N/A')}")
+    print(f"Token: {config.get('token', '')[:20]}..." if config.get('token') else "Token: N/A")
+
+    response = input("\nAre you sure you want to revoke and delete this configuration? (yes/no): ").strip().lower()
+    if response not in ['yes', 'y']:
+        print("Operation cancelled.")
+        return
+
+    # Try to revoke token via API
+    try:
+        base_api_url = parse_base_url(config['base_url'])
+        revoke_token(base_api_url, config['token'])
+    except Exception as e:
+        print(f"Warning: Could not revoke token via API: {e}")
+
+    # Delete config file
+    if delete_config():
+        print(f"\n✓ Configuration deleted from: {CONFIG_FILE}")
+        print("\nIMPORTANT: Please manually revoke the token from Sentry:")
+        print("  1. Go to: Settings → Account → API → Auth Tokens")
+        print("  2. Find and delete the token")
+    else:
+        print("Error: Could not delete configuration file")
+
+def cmd_export(args):
+    """Export issues (original functionality)"""
+    # Get token from args, environment, or config file
+    token = args.token
+
+    if not token:
+        token = os.environ.get('SENTRY_TOKEN')
+
+    if not token:
+        config = load_config()
+        if config:
+            token = config.get('token')
+            # Also use base_url from config if not provided
+            if not args.base_url:
+                args.base_url = config.get('base_url')
+
+    if not token:
+        print("Error: No token provided.")
+        print("Please either:")
+        print(f"  1. Run '{sys.argv[0]} init' to save your token")
+        print("  2. Use --token parameter")
+        print("  3. Set SENTRY_TOKEN environment variable")
+        sys.exit(1)
+
+    if not args.base_url:
+        print("Error: No base URL provided.")
+        print("Please either:")
+        print(f"  1. Run '{sys.argv[0]} init' to save your configuration")
+        print("  2. Use --base-url parameter")
+        sys.exit(1)
+
+    issue_ids = [id.strip() for id in args.ids.split(',') if id.strip()]
+
+    if not issue_ids:
+        print("Error: No valid Issue IDs provided")
+        sys.exit(1)
+
+    print(f"Preparing to export {len(issue_ids)} issue(s)...")
+    if args.debug:
+        print("🔍 Debug mode enabled")
+
+    export_issues(args.base_url, token, issue_ids, args.output, args.debug)
+
 def export_issues(base_url, token, issue_ids, output_file=None, debug_mode=False):
     """Export specified issues to a single file"""
     base_api_url = parse_base_url(base_url)
@@ -321,54 +537,59 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 Examples:
-  python export_sentry_issue.py --base-url "https://sentry.example.com/api/0/projects/my-org/my-project/issues/" --ids "12345,67890" --token "your_token"
-  python export_sentry_issue.py --base-url "https://sentry.example.com/api/0/projects/my-org/my-project/issues/" --ids "12345" --token "your_token" --output "errors.txt"
-  python export_sentry_issue.py --base-url "https://sentry.example.com/api/0/projects/my-org/my-project/issues/" --ids "12345" --token "your_token" --debug
+  # Initialize (first time setup)
+  python export_sentry_issue.py init
+
+  # Export issues (using saved configuration)
+  python export_sentry_issue.py export --ids "12345,67890"
+
+  # Export issues (with explicit token)
+  python export_sentry_issue.py export --base-url "https://sentry.example.com/api/0/projects/my-org/my-project/issues/" --ids "12345,67890" --token "your_token"
+
+  # Revoke token and delete configuration
+  python export_sentry_issue.py revoke
         '''
     )
 
-    parser.add_argument(
-        '--base-url',
-        required=True,
-        help='Sentry API base URL, format: https://sentry.io/api/0/projects/{org}/{project}/issues/'
-    )
+    # Create subparsers for commands
+    subparsers = parser.add_subparsers(dest='command', help='Available commands', required=True)
 
-    parser.add_argument(
+    # Init command
+    parser_init = subparsers.add_parser('init', help='Initialize configuration')
+    parser_init.set_defaults(func=cmd_init)
+
+    # Export command
+    parser_export = subparsers.add_parser('export', help='Export Sentry issues')
+    parser_export.add_argument(
+        '--base-url',
+        help='Sentry API base URL (optional if already configured)'
+    )
+    parser_export.add_argument(
         '--ids',
         required=True,
         help='Issue IDs to export, comma-separated, e.g.: 12345,67890,11111'
     )
-
-    parser.add_argument(
+    parser_export.add_argument(
         '--token',
-        required=True,
-        help='Sentry Auth Token'
+        help='Sentry Auth Token (optional if already configured)'
     )
-
-    parser.add_argument(
+    parser_export.add_argument(
         '--output',
         help='Output file name (optional, default: sentry_issues_TIMESTAMP.txt)'
     )
-
-    parser.add_argument(
+    parser_export.add_argument(
         '--debug',
         action='store_true',
         help='Enable debug mode, shows available fields and saves raw JSON'
     )
+    parser_export.set_defaults(func=cmd_export)
+
+    # Revoke command
+    parser_revoke = subparsers.add_parser('revoke', help='Revoke token and delete configuration')
+    parser_revoke.set_defaults(func=cmd_revoke)
 
     args = parser.parse_args()
-
-    issue_ids = [id.strip() for id in args.ids.split(',') if id.strip()]
-
-    if not issue_ids:
-        print("Error: No valid Issue IDs provided")
-        return
-
-    print(f"Preparing to export {len(issue_ids)} issue(s)...")
-    if args.debug:
-        print("🔍 Debug mode enabled")
-
-    export_issues(args.base_url, args.token, issue_ids, args.output, args.debug)
+    args.func(args)
 
 if __name__ == "__main__":
     main()
