@@ -216,6 +216,71 @@ def format_issue_to_text(issue, latest_event, debug_mode=False):
         output.append("⚠️  Breadcrumbs not found")
         output.append("")
 
+    # Spans (performance traces)
+    spans_found = False
+    if latest_event.get('entries'):
+        for entry in latest_event['entries']:
+            if entry['type'] == 'spans':
+                spans_found = True
+                output.append("【Spans (Performance Traces)】")
+                spans = entry.get('data', [])
+
+                if not spans:
+                    output.append("  (No spans data)")
+                else:
+                    # Show all spans with duration
+                    for span in spans:
+                        span_id = span.get('span_id', 'N/A')
+                        op = span.get('op', 'N/A')
+                        description = span.get('description', '')
+                        status = span.get('status', 'unknown')
+
+                        # Calculate duration from timestamps
+                        start_ts = span.get('start_timestamp')
+                        end_ts = span.get('timestamp')
+                        duration_ms = None
+                        if start_ts and end_ts:
+                            duration_ms = (end_ts - start_ts) * 1000  # Convert to milliseconds
+
+                        # Also check for exclusive_time (actual execution time excluding child spans)
+                        exclusive_time = span.get('exclusive_time')
+
+                        output.append(f"  Span ID: {span_id}")
+                        output.append(f"    Operation: {op}")
+                        output.append(f"    Status: {status}")
+
+                        if duration_ms is not None:
+                            output.append(f"    Duration: {duration_ms:.3f}ms")
+                        if exclusive_time is not None:
+                            output.append(f"    Exclusive Time: {exclusive_time:.3f}ms")
+
+                        if description:
+                            # Truncate long descriptions
+                            if len(description) > 200:
+                                description = description[:200] + "..."
+                            output.append(f"    Description: {description}")
+
+                        # Show parent span if exists
+                        if span.get('parent_span_id'):
+                            output.append(f"    Parent Span: {span['parent_span_id']}")
+
+                        # Show additional data
+                        if span.get('data'):
+                            data = span['data']
+                            output.append(f"    Data:")
+                            for key, value in data.items():
+                                str_value = str(value)
+                                if len(str_value) > 100:
+                                    str_value = str_value[:100] + "..."
+                                output.append(f"      {key}: {str_value}")
+
+                        output.append("")
+                break
+
+    if not spans_found and debug_mode:
+        output.append("⚠️  Spans not found")
+        output.append("")
+
     # Stack trace
     output.append("【Stack Trace】")
     if latest_event.get('entries'):
@@ -381,10 +446,19 @@ def cmd_init(args):
     # Verify token by making a test API call
     print("\nVerifying token...")
     try:
-        # Test with a simple API call
-        test_url = f"{parsed_url}/projects/"
+        # Test with the actual issues endpoint that requires event:read permission
+        # This is what the script will actually use, so it's the best validation
         headers = {"Authorization": f"Bearer {token}"}
-        response = requests.get(test_url, headers=headers)
+        # Try to list issues (this requires event:read permission)
+        response = requests.get(base_url, headers=headers)
+
+        # Check for authentication/permission errors
+        if response.status_code == 401:
+            raise requests.exceptions.HTTPError("401 Unauthorized - Invalid token")
+        elif response.status_code == 403:
+            raise requests.exceptions.HTTPError("403 Forbidden - Token lacks required permissions (event:read)")
+
+        # If we get 200 or even 404 (project not found but auth is ok), token is valid
         response.raise_for_status()
         print("✓ Token verified successfully")
     except requests.exceptions.RequestException as e:
