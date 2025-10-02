@@ -294,7 +294,7 @@ def format_issue_to_text(issue, latest_event, debug_mode=False):
                     if exc.get('mechanism'):
                         output.append(f"Mechanism: {exc['mechanism'].get('type', 'N/A')}")
 
-                    if 'stacktrace' in exc:
+                    if exc.get('stacktrace'):
                         output.append("\nCall Stack:")
                         frames = exc['stacktrace'].get('frames', [])
                         for frame in reversed(frames):
