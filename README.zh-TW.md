@@ -44,6 +44,13 @@ export-sentry-issue export --ids "12345,67890"
 - 🚀 支援多種傳輸模式（STDIO 和 HTTP/SSE）
 
 **快速開始：**
+
+使用 Docker：
+```bash
+docker pull ghcr.io/jlhg/export-sentry-issue-mcp:latest
+```
+
+或透過 pip 安裝：
 ```bash
 pip install export-sentry-issue-mcp
 

@@ -44,6 +44,13 @@ An [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that a
 - 🚀 Multiple transport modes (STDIO and HTTP/SSE)
 
 **Quick Start:**
+
+Using Docker:
+```bash
+docker pull ghcr.io/jlhg/export-sentry-issue-mcp:latest
+```
+
+Or install via pip:
 ```bash
 pip install export-sentry-issue-mcp
 
