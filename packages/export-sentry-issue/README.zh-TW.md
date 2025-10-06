@@ -15,17 +15,13 @@
 
 ### 需求
 
-- Python 3.6+
-- `requests` 函式庫
+- Python 3.10+
+- `requests` 函式庫（會自動安裝）
 
 ### 設定
 
 ```bash
-# 安裝相依套件
-pip install requests
-
-# 下載腳本
-# 將腳本儲存為 export_sentry_issue.py
+pip install export-sentry-issue
 ```
 
 ## 取得所需資訊
@@ -68,17 +64,17 @@ https://your-sentry-domain.com/api/0/projects/{org-slug}/{project-slug}/issues/
 
 ```bash
 # 步驟 1：初始化（一次性設定）
-python export_sentry_issue.py init
+export-sentry-issue init
 
 # 您將被提示輸入：
 # - Base URL: https://sentry.io/api/0/projects/my-org/my-project/issues/
 # - Token:（隱藏輸入，不會顯示在螢幕上）
 
 # 步驟 2：使用已儲存的配置匯出 issues
-python export_sentry_issue.py export --ids "12345,67890"
+export-sentry-issue export --ids "12345,67890"
 
 # 步驟 3：完成後，撤銷並刪除配置
-python export_sentry_issue.py revoke
+export-sentry-issue revoke
 ```
 
 配置會儲存到 `~/.config/export-sentry-issue/config.json`，檔案權限為 600（僅擁有者可讀寫）。
@@ -94,7 +90,7 @@ python export_sentry_issue.py revoke
 您仍可透過命令列提供憑證，適用於 CI/CD 或一次性使用：
 
 ```bash
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --base-url "https://sentry.io/api/0/projects/my-org/my-project/issues/" \
   --ids "12345,67890" \
   --token "your_sentry_token"
@@ -109,7 +105,7 @@ python export_sentry_issue.py export \
 
 ```bash
 export SENTRY_TOKEN="your_sentry_token"
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --base-url "https://sentry.io/api/0/projects/my-org/my-project/issues/" \
   --ids "12345,67890"
 ```
@@ -117,7 +113,7 @@ python export_sentry_issue.py export \
 ### 指定輸出檔案
 
 ```bash
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --ids "12345" \
   --output "critical_errors.txt"
 ```
@@ -127,7 +123,7 @@ python export_sentry_issue.py export \
 當資料不完整時，使用 debug 模式檢查原始資料結構：
 
 ```bash
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --ids "12345" \
   --debug
 ```
@@ -144,7 +140,7 @@ Debug 模式會：
 安全地儲存您的 Sentry 憑證以供未來使用。
 
 ```bash
-python export_sentry_issue.py init
+export-sentry-issue init
 ```
 
 **功能：**
@@ -161,13 +157,13 @@ python export_sentry_issue.py init
 
 ```bash
 # 使用已儲存的配置
-python export_sentry_issue.py export --ids "12345,67890"
+export-sentry-issue export --ids "12345,67890"
 
 # 自訂輸出檔案
-python export_sentry_issue.py export --ids "12345" --output "errors.txt"
+export-sentry-issue export --ids "12345" --output "errors.txt"
 
 # 覆寫已儲存的配置
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --base-url "https://sentry.io/api/0/projects/org/proj/issues/" \
   --token "custom_token" \
   --ids "12345"
@@ -192,10 +188,10 @@ python export_sentry_issue.py export \
 
 ### `revoke` - 撤銷 Token
 
-刪除已儲存的配置，並取得從 Sentry 撤銷 token 的說明。
+刪除已儲存的配置,並取得從 Sentry 撤銷 token 的說明。
 
 ```bash
-python export_sentry_issue.py revoke
+export-sentry-issue revoke
 ```
 
 **動作：**
@@ -238,22 +234,22 @@ python export_sentry_issue.py revoke
 
 ```bash
 # 使用您的憑證初始化
-python export_sentry_issue.py init
+export-sentry-issue init
 # 輸入 base URL: https://sentry.example.com/api/0/projects/my-org/web-app/issues/
 # 輸入 token:（隱藏輸入）
 
 # 匯出單一 issue
-python export_sentry_issue.py export --ids "349" --output "issue_349.txt"
+export-sentry-issue export --ids "349" --output "issue_349.txt"
 
 # 完成後清理
-python export_sentry_issue.py revoke
+export-sentry-issue revoke
 ```
 
 ### 範例 2：批次匯出多個 Issues
 
 ```bash
 # 使用已儲存的配置
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --ids "349,350,351,352,353" \
   --output "batch_export.txt"
 ```
@@ -262,19 +258,19 @@ python export_sentry_issue.py export \
 
 ```bash
 # 使用 self-hosted URL 初始化
-python export_sentry_issue.py init
+export-sentry-issue init
 # 輸入 base URL: https://your-sentry-domain.com/api/0/projects/mycompany/backend/issues/
 # 輸入 token:（隱藏輸入）
 
 # 匯出 issues
-python export_sentry_issue.py export --ids "100,101,102"
+export-sentry-issue export --ids "100,101,102"
 ```
 
 ### 範例 4：一次性匯出（無配置）
 
 ```bash
 # 用於 CI/CD 或一次性使用
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --base-url "https://sentry.example.com/api/0/projects/my-org/web-app/issues/" \
   --ids "349" \
   --token "sntrys_xxxxxxxxxxxxx" \
@@ -322,7 +318,7 @@ sentry_sdk.init(
 
 **使用 debug 模式檢查：**
 ```bash
-python export_sentry_issue.py export --ids "123" --debug
+export-sentry-issue export --ids "123" --debug
 ```
 
 檢查 `debug_issue_123.json` 以查看實際可用的資料。
@@ -333,14 +329,14 @@ python export_sentry_issue.py export --ids "123" --debug
 1. 前往 Sentry → Settings → API → Auth Tokens
 2. 刪除舊的 Token
 3. 建立新的 Token
-4. 更新配置：`python export_sentry_issue.py init`
+4. 更新配置：`export-sentry-issue init`
 
 ### 錯誤：未提供 token
 
 **原因：** 在命令列、環境變數或配置檔案中都找不到 token
 
 **解決方法：**
-- 執行 `python export_sentry_issue.py init` 以儲存您的 token，或
+- 執行 `export-sentry-issue init` 以儲存您的 token，或
 - 使用 `--token` 參數，或
 - 設定 `SENTRY_TOKEN` 環境變數
 
@@ -397,7 +393,7 @@ sentry_sdk.init(
 # export_today_errors.sh
 
 # 使用已儲存的配置以提高安全性
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --ids "$1" \
   --output "errors_$(date +%Y%m%d).txt"
 ```
@@ -405,7 +401,7 @@ python export_sentry_issue.py export \
 使用方式：
 ```bash
 # 首次：初始化配置
-python export_sentry_issue.py init
+export-sentry-issue init
 
 # 然後使用腳本
 chmod +x export_today_errors.sh
@@ -422,7 +418,7 @@ chmod +x export_today_errors.sh
   env:
     SENTRY_TOKEN: ${{ secrets.SENTRY_TOKEN }}
   run: |
-    python export_sentry_issue.py export \
+    export-sentry-issue export \
       --base-url "https://sentry.io/api/0/projects/org/proj/issues/" \
       --ids "123,456" \
       --output "issues.txt"
@@ -432,7 +428,7 @@ chmod +x export_today_errors.sh
 
 **Q: 可以匯出所有未解決的 issues 嗎？**
 
-A: 此腳本需要指定 Issue ID。要批次匯出，請先使用 Sentry API 列出所有 issues，然後提取 ID：
+A: 此工具需要指定 Issue ID。要批次匯出，請先使用 Sentry API 列出所有 issues，然後提取 ID：
 
 ```bash
 curl -H "Authorization: Bearer TOKEN" \
@@ -474,7 +470,7 @@ A: 是的。`init` 命令使用安全的實作方式：
 A: 可以。對於 CI/CD，使用環境變數而非配置檔案：
 ```bash
 export SENTRY_TOKEN="${{ secrets.SENTRY_TOKEN }}"
-python export_sentry_issue.py export --base-url "..." --ids "..."
+export-sentry-issue export --base-url "..." --ids "..."
 ```
 
 ## 授權

@@ -17,17 +17,13 @@ Export Sentry issues to plain text files for offline analysis and debugging.
 
 ### Requirements
 
-- Python 3.6+
-- `requests` library
+- Python 3.10+
+- `requests` library (automatically installed)
 
 ### Setup
 
 ```bash
-# Install dependencies
-pip install requests
-
-# Download the script
-# Save the script as export_sentry_issue.py
+pip install export-sentry-issue
 ```
 
 ## Getting Required Information
@@ -70,17 +66,17 @@ For better security, save your credentials to a configuration file instead of pa
 
 ```bash
 # Step 1: Initialize (one-time setup)
-python export_sentry_issue.py init
+export-sentry-issue init
 
 # You'll be prompted to enter:
 # - Base URL: https://sentry.io/api/0/projects/my-org/my-project/issues/
 # - Token: (hidden input, won't appear on screen)
 
 # Step 2: Export issues using saved configuration
-python export_sentry_issue.py export --ids "12345,67890"
+export-sentry-issue export --ids "12345,67890"
 
 # Step 3: When done, revoke and delete the configuration
-python export_sentry_issue.py revoke
+export-sentry-issue revoke
 ```
 
 The configuration is saved to `~/.config/export-sentry-issue/config.json` with secure permissions (600).
@@ -96,7 +92,7 @@ The configuration is saved to `~/.config/export-sentry-issue/config.json` with s
 You can still provide credentials via command-line for CI/CD or one-time usage:
 
 ```bash
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --base-url "https://sentry.io/api/0/projects/my-org/my-project/issues/" \
   --ids "12345,67890" \
   --token "your_sentry_token"
@@ -111,7 +107,7 @@ python export_sentry_issue.py export \
 
 ```bash
 export SENTRY_TOKEN="your_sentry_token"
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --base-url "https://sentry.io/api/0/projects/my-org/my-project/issues/" \
   --ids "12345,67890"
 ```
@@ -119,7 +115,7 @@ python export_sentry_issue.py export \
 ### Specify Output File
 
 ```bash
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --ids "12345" \
   --output "critical_errors.txt"
 ```
@@ -129,7 +125,7 @@ python export_sentry_issue.py export \
 When data is incomplete, use debug mode to inspect the raw data structure:
 
 ```bash
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --ids "12345" \
   --debug
 ```
@@ -146,7 +142,7 @@ Debug mode will:
 Securely save your Sentry credentials for future use.
 
 ```bash
-python export_sentry_issue.py init
+export-sentry-issue init
 ```
 
 **Features:**
@@ -163,13 +159,13 @@ Export Sentry issues to a plain text file.
 
 ```bash
 # Using saved configuration
-python export_sentry_issue.py export --ids "12345,67890"
+export-sentry-issue export --ids "12345,67890"
 
 # With custom output file
-python export_sentry_issue.py export --ids "12345" --output "errors.txt"
+export-sentry-issue export --ids "12345" --output "errors.txt"
 
 # Override saved configuration
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --base-url "https://sentry.io/api/0/projects/org/proj/issues/" \
   --token "custom_token" \
   --ids "12345"
@@ -197,7 +193,7 @@ python export_sentry_issue.py export \
 Delete the saved configuration and get instructions to revoke the token from Sentry.
 
 ```bash
-python export_sentry_issue.py revoke
+export-sentry-issue revoke
 ```
 
 **Actions:**
@@ -240,22 +236,22 @@ The exported text file includes the following information:
 
 ```bash
 # Initialize with your credentials
-python export_sentry_issue.py init
+export-sentry-issue init
 # Enter base URL: https://sentry.example.com/api/0/projects/my-org/web-app/issues/
 # Enter token: (hidden input)
 
 # Export a single issue
-python export_sentry_issue.py export --ids "349" --output "issue_349.txt"
+export-sentry-issue export --ids "349" --output "issue_349.txt"
 
 # When done, clean up
-python export_sentry_issue.py revoke
+export-sentry-issue revoke
 ```
 
 ### Example 2: Batch Export Multiple Issues
 
 ```bash
 # Using saved configuration
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --ids "349,350,351,352,353" \
   --output "batch_export.txt"
 ```
@@ -264,19 +260,19 @@ python export_sentry_issue.py export \
 
 ```bash
 # Initialize with self-hosted URL
-python export_sentry_issue.py init
+export-sentry-issue init
 # Enter base URL: https://your-sentry-domain.com/api/0/projects/mycompany/backend/issues/
 # Enter token: (hidden input)
 
 # Export issues
-python export_sentry_issue.py export --ids "100,101,102"
+export-sentry-issue export --ids "100,101,102"
 ```
 
 ### Example 4: One-time Export (No Configuration)
 
 ```bash
 # For CI/CD or one-time usage
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --base-url "https://sentry.example.com/api/0/projects/my-org/web-app/issues/" \
   --ids "349" \
   --token "sntrys_xxxxxxxxxxxxx" \
@@ -324,7 +320,7 @@ sentry_sdk.init(
 
 **Use debug mode to inspect:**
 ```bash
-python export_sentry_issue.py --base-url "..." --ids "123" --token "..." --debug
+export-sentry-issue export --base-url "..." --ids "123" --token "..." --debug
 ```
 
 Check `debug_issue_123.json` to see what data is actually available.
@@ -335,14 +331,14 @@ Check `debug_issue_123.json` to see what data is actually available.
 1. Go to Sentry → Settings → API → Auth Tokens
 2. Delete old Token
 3. Create new Token
-4. Update configuration: `python export_sentry_issue.py init`
+4. Update configuration: `export-sentry-issue init`
 
 ### Error: No token provided
 
 **Cause:** No token found in command-line, environment variable, or configuration file
 
 **Solution:**
-- Run `python export_sentry_issue.py init` to save your token, OR
+- Run `export-sentry-issue init` to save your token, OR
 - Use `--token` parameter, OR
 - Set `SENTRY_TOKEN` environment variable
 
@@ -399,7 +395,7 @@ Wrap common commands in a shell script:
 # export_today_errors.sh
 
 # Use saved configuration for security
-python export_sentry_issue.py export \
+export-sentry-issue export \
   --ids "$1" \
   --output "errors_$(date +%Y%m%d).txt"
 ```
@@ -407,7 +403,7 @@ python export_sentry_issue.py export \
 Usage:
 ```bash
 # First time: initialize configuration
-python export_sentry_issue.py init
+export-sentry-issue init
 
 # Then use the script
 chmod +x export_today_errors.sh
@@ -424,7 +420,7 @@ For automated environments, use environment variables:
   env:
     SENTRY_TOKEN: ${{ secrets.SENTRY_TOKEN }}
   run: |
-    python export_sentry_issue.py export \
+    export-sentry-issue export \
       --base-url "https://sentry.io/api/0/projects/org/proj/issues/" \
       --ids "123,456" \
       --output "issues.txt"
@@ -434,7 +430,7 @@ For automated environments, use environment variables:
 
 **Q: Can I export all unresolved issues?**
 
-A: This script requires specific Issue IDs. To batch export, first list all issues using Sentry API, then extract IDs:
+A: This tool requires specific Issue IDs. To batch export, first list all issues using Sentry API, then extract IDs:
 
 ```bash
 curl -H "Authorization: Bearer TOKEN" \
@@ -476,7 +472,7 @@ A: Yes. The `init` command uses secure practices:
 A: Yes. For CI/CD, use environment variables instead of the config file:
 ```bash
 export SENTRY_TOKEN="${{ secrets.SENTRY_TOKEN }}"
-python export_sentry_issue.py export --base-url "..." --ids "..."
+export-sentry-issue export --base-url "..." --ids "..."
 ```
 
 ## License
