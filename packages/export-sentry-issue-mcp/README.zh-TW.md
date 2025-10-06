@@ -15,6 +15,8 @@
 
 ## 安裝
 
+**需求：** Python 3.10 或更高版本
+
 ### 從 PyPI 安裝（推薦）
 
 ```bash
@@ -444,4 +446,3 @@ MIT License - 詳見 [LICENSE](../../LICENSE) 檔案
 
 - 🐛 [回報問題](https://github.com/jlhg/export-sentry-issue/issues)
 - 📖 [文件](https://github.com/jlhg/export-sentry-issue#readme)
-- 💬 [討論](https://github.com/jlhg/export-sentry-issue/discussions)

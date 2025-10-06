@@ -15,6 +15,8 @@ An [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for ex
 
 ## Installation
 
+**Requirements:** Python 3.10 or higher
+
 ### From PyPI (Recommended)
 
 ```bash
@@ -447,4 +449,3 @@ MIT License - See [LICENSE](../../LICENSE) file for details
 
 - 🐛 [Report Issues](https://github.com/jlhg/export-sentry-issue/issues)
 - 📖 [Documentation](https://github.com/jlhg/export-sentry-issue#readme)
-- 💬 [Discussions](https://github.com/jlhg/export-sentry-issue/discussions)
